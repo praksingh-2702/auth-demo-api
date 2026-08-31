@@ -65,12 +65,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String initiatePasswordReset(String email) {
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-        String resetToken = UUID.randomUUID().toString();
-        user.setResetToken(resetToken);
-        userRepository.save(user);
-        return resetToken;
+        return userRepository.findByEmail(email)
+                .map(user -> {
+                    String resetToken = UUID.randomUUID().toString();
+                    user.setResetToken(resetToken);
+                    userRepository.save(user);
+                    return resetToken;
+                })
+                .orElse(null);
     }
 
     @Override

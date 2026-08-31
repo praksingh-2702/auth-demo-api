@@ -13,6 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/customer")
+@CrossOrigin(origins = "*")
 @Tag(name = "Customer Management", description = "Endpoints for managing customer profiles and status")
 public class CustomerController {
 

@@ -12,6 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@CrossOrigin(origins = "*")
 @Tag(name = "Authentication Management", description = "Endpoints for user onboarding, login, logout, refresh tokens, and recovery")
 public class AuthController {
 
@@ -61,6 +62,10 @@ public class AuthController {
     @Operation(summary = "Request password reset")
     public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         String resetToken = userService.initiatePasswordReset(request.getEmail());
+        if (resetToken == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "No user found with that email address"));
+        }
         return ResponseEntity.ok(Map.of("resetToken", resetToken, "message", "Reset link sent to email"));
     }
 

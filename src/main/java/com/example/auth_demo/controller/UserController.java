@@ -12,6 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@CrossOrigin(origins = "*")
 @Tag(name = "User Profile Management", description = "Endpoints for testing profile details and account security")
 public class UserController {
 
