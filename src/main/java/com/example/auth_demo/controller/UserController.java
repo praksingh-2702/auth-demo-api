@@ -1,59 +1,49 @@
 package com.example.auth_demo.controller;
 
-import com.example.auth_demo.dto.AuthDTOs.*;
+import com.example.auth_demo.dto.*;
+import com.example.auth_demo.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
 @Tag(name = "User Profile Management", description = "Endpoints for testing profile details and account security")
 public class UserController {
 
-    @GetMapping("/me")
-    @Operation(summary = "Get current user profile (Mock)", security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<?> getCurrentUser(
-            @RequestHeader(value = "Authorization", required = false) String bearerToken,
-            @RequestParam(defaultValue = "test_user") String username,
-            @RequestParam(defaultValue = "test@example.com") String email,
-            @RequestParam(defaultValue = "Test User") String fullName,
-            @RequestParam(defaultValue = "ROLE_USER") String role) {
+    private final UserService userService;
 
-        String dynamicId = "usr_" + UUID.randomUUID().toString().substring(0, 8);
-        return ResponseEntity.ok(new UserProfileResponse(dynamicId, username, email, fullName, role));
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get current user profile")
+    public ResponseEntity<UserResponse> getCurrentUser(@RequestParam(defaultValue = "customer1") String username) {
+        return ResponseEntity.ok(userService.getUserProfile(username));
     }
 
     @PutMapping("/me")
-    @Operation(summary = "Update current user profile (Mock)", security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<?> updateProfile(
-            @RequestHeader(value = "Authorization", required = false) String bearerToken,
-            @RequestBody UpdateProfileRequest request) {
-
-        return ResponseEntity.ok(Map.of(
-            "message", "Profile updated successfully (Mock)",
-            "updatedName", request.getFullName() != null ? request.getFullName() : "No change",
-            "updatedEmail", request.getEmail() != null ? request.getEmail() : "No change"
-        ));
+    @Operation(summary = "Update current user profile")
+    public ResponseEntity<UserResponse> updateCurrentUser(
+            @RequestParam(defaultValue = "customer1") String username,
+            @RequestBody CustomerKycRequest request) {
+        return ResponseEntity.ok(userService.updateProfile(username, request));
     }
 
     @PostMapping("/change-password")
-    @Operation(summary = "Change password for logged-in user (Mock)", security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<?> changePassword(
-            @RequestHeader(value = "Authorization", required = false) String bearerToken,
+    @Operation(summary = "Change password for logged-in user")
+    public ResponseEntity<Map<String, String>> changePassword(
+            @RequestParam(defaultValue = "customer1") String username,
             @RequestBody ChangePasswordRequest request) {
-
-        if (request.getOldPassword() == null || request.getOldPassword().isBlank() ||
-            request.getNewPassword() == null || request.getNewPassword().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Both old and new passwords are required"));
+        boolean success = userService.changePassword(username, request.getOldPassword(), request.getNewPassword());
+        if (success) {
+            return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
         }
-
-        return ResponseEntity.ok(Map.of("message", "Password changed successfully (Mock)"));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Incorrect old password"));
     }
 }

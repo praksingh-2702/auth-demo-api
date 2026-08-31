@@ -1,102 +1,76 @@
 package com.example.auth_demo.controller;
 
-import com.example.auth_demo.dto.AuthDTOs.*;
+import com.example.auth_demo.dto.*;
+import com.example.auth_demo.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Authentication Management", description = "Endpoints for user onboarding, login, logout, refresh tokens, and recovery")
 public class AuthController {
 
-    @PostMapping("/register")
-    @Operation(summary = "Register a new user", description = "Accepts user details and registers a new account dynamically")
-    @ApiResponse(responseCode = "201", description = "User successfully registered")
-    @ApiResponse(responseCode = "400", description = "Invalid request or missing required fields")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        if (request.getEmail() == null || request.getEmail().isBlank() ||
-            request.getUsername() == null || request.getUsername().isBlank() ||
-            request.getPassword() == null || request.getPassword().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Email, username, and password are required"));
-        }
+    private final UserService userService;
 
-        String generatedId = "usr_" + UUID.randomUUID().toString().substring(0, 8);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-            "message", "User registered successfully",
-            "userId", generatedId,
-            "username", request.getUsername(),
-            "email", request.getEmail()
-        ));
+    public AuthController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "Register a new user")
+    public ResponseEntity<UserResponse> register(@RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(userService.register(request));
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Login user", description = "Accepts any user credentials and returns dynamic tokens")
-    @ApiResponse(responseCode = "200", description = "Successfully authenticated")
-    @ApiResponse(responseCode = "400", description = "Missing input")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        if (request.getUsernameOrEmail() == null || request.getUsernameOrEmail().isBlank() ||
-            request.getPassword() == null || request.getPassword().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Username/email and password are required"));
+    @Operation(summary = "Login user")
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
+        String token = userService.login(request);
+        return ResponseEntity.ok(Map.of("token", token));
+    }
+
+    @PostMapping("/verify-otp")
+    @Operation(summary = "Verify OTP after registration")
+    public ResponseEntity<Map<String, String>> verifyOtp(@RequestBody OtpVerificationRequest request) {
+        boolean verified = userService.verifyOtp(request);
+        if (verified) {
+            return ResponseEntity.ok(Map.of("message", "OTP verified successfully. Account activated."));
         }
-
-        String userSlug = request.getUsernameOrEmail().replaceAll("\\s+", "_");
-        TokenResponse tokens = new TokenResponse(
-            "token_access_" + userSlug + "_" + UUID.randomUUID().toString().substring(0, 8),
-            "token_refresh_" + userSlug + "_" + UUID.randomUUID().toString().substring(0, 8)
-        );
-
-        return ResponseEntity.ok(tokens);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid or expired OTP"));
     }
 
     @PostMapping("/logout")
     @Operation(summary = "Logout user")
-    public ResponseEntity<?> logout(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
-        return ResponseEntity.ok(Map.of("message", "Token invalidated and user successfully logged out."));
+    public ResponseEntity<Map<String, String>> logout() {
+        return ResponseEntity.ok(Map.of("message", "User logged out successfully"));
     }
 
     @PostMapping("/refresh-token")
     @Operation(summary = "Refresh access token")
-    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
-        if (request.getRefreshToken() != null && !request.getRefreshToken().isBlank()) {
-            TokenResponse newTokens = new TokenResponse(
-                "token_access_refreshed_" + UUID.randomUUID().toString().substring(0, 8),
-                request.getRefreshToken()
-            );
-            return ResponseEntity.ok(newTokens);
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Invalid refresh token"));
+    public ResponseEntity<Map<String, String>> refreshToken(@RequestBody RefreshTokenRequest request) {
+        String token = userService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
     @PostMapping("/forgot-password")
     @Operation(summary = "Request password reset")
-    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-        if (request.getEmail() == null || request.getEmail().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Email is required"));
-        }
-        String resetToken = "reset_" + UUID.randomUUID().toString().substring(0, 12);
-        return ResponseEntity.ok(Map.of(
-            "message", "Password reset token sent to " + request.getEmail(),
-            "resetToken", resetToken
-        ));
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        String resetToken = userService.initiatePasswordReset(request.getEmail());
+        return ResponseEntity.ok(Map.of("resetToken", resetToken, "message", "Reset link sent to email"));
     }
 
     @PostMapping("/reset-password")
     @Operation(summary = "Reset password using reset token")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
-        if (request.getResetToken() == null || request.getResetToken().isBlank() ||
-            request.getNewPassword() == null || request.getNewPassword().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Reset token and new password are required"));
+    public ResponseEntity<Map<String, String>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        boolean success = userService.resetPassword(request.getToken(), request.getNewPassword());
+        if (success) {
+            return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
         }
-        return ResponseEntity.ok(Map.of("message", "Password updated successfully using token: " + request.getResetToken()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid or expired token"));
     }
 }
