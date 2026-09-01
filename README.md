@@ -46,7 +46,32 @@ src/main/java/com/example/auth_demo/
 Quickstart (Local Setup)PrerequisitesJDK 17 or higherMaven 3.8+ (or use included ./mvnw)GitRunning LocallyClone the repository:Bashgit clone [https://github.com/praksingh-2702/auth-demo-api.git](https://github.com/praksingh-2702/auth-demo-api.git)
 cd auth-demo-api
 Build and run the project:Bash./mvnw spring-boot:run
-(On Windows Command Prompt / PowerShell, use mvnw spring-boot:run)Access the application:Swagger UI: http://localhost:8080/swagger-ui/index.htmlH2 Database Console: http://localhost:8080/h2-consoleJDBC URL: jdbc:h2:mem:authdbUsername: saPassword: (leave blank)📌 Main API Endpoints1. Authentication Management (/api/v1/auth)MethodEndpointDescriptionPOST/api/v1/auth/registerRegister a new userPOST/api/v1/auth/verify-otpVerify OTP and activate accountPOST/api/v1/auth/loginAuthenticate user & return tokenPOST/api/v1/auth/forgot-passwordRequest password reset tokenPOST/api/v1/auth/reset-passwordReset password using valid reset tokenPOST/api/v1/auth/refresh-tokenGenerate fresh access tokenPOST/api/v1/auth/logoutTerminate session2. User Profile Management (/api/v1/users)MethodEndpointDescriptionGET/api/v1/users/meFetch logged-in user detailsPUT/api/v1/users/meUpdate personal profile detailsPOST/api/v1/users/change-passwordUpdate account password3. Customer Management (/api/v1/customer)MethodEndpointDescriptionGET/api/v1/customer/profileGet customer profile detailsPOST/api/v1/customer/profileSubmit customer KYC informationGET/api/v1/customer/allList all customer accountsGET/api/v1/customer/statusFetch current account status🌐 Deploying to RenderPush your latest code to GitHub:Bashgit add .
+(On Windows Command Prompt / PowerShell, use mvnw spring-boot:run)Access the application:Swagger UI: http://localhost:8080/swagger-ui/index.htmlH2 Database Console: http://localhost:8080/h2-consoleJDBC URL: jdbc:h2:mem:authdbUsername: saPassword: (leave blank)
+Main API Endpoints
+1. Authentication Management (/api/v1/auth)
+MethodEndpointDescription
+POST/api/v1/auth/registerRegister a new user
+POST/api/v1/auth/verify-otpVerify OTP and activate account
+POST/api/v1/auth/loginAuthenticate user & return token
+POST/api/v1/auth/forgot-passwordRequest password reset token
+POST/api/v1/auth/reset-passwordReset password using valid reset token
+POST/api/v1/auth/refresh-tokenGenerate fresh access token
+POST/api/v1/auth/logoutTerminate session2.
+
+User Profile Management(/api/v1/users)
+MethodEndpointDescription
+GET/api/v1/users/meFetch logged-in user details
+PUT/api/v1/users/meUpdate personal profile details
+POST/api/v1/users/change-passwordUpdate account password3.
+
+Customer Management (/api/v1/customer)
+MethodEndpointDescription
+GET/api/v1/customer/profileGet customer profile details
+POST/api/v1/customer/profileSubmit customer KYC information
+GET/api/v1/customer/allList all customer accounts
+GET/api/v1/customer/statusFetch current account status
+
+🌐 Deploying to RenderPush your latest code to GitHub:Bashgit add .
 git commit -m "Update README and final configs"
 git push origin main
 Create a Web Service on Render.Connect your GitHub repository praksingh-2702/auth-demo-api.Set the build and start settings:Runtime: Docker (or Java)Build Command: ./mvnw clean package -DskipTestsStart Command: java -jar target/auth-demo-0.0.1-SNAPSHOT.jarEnvironment Variable: Add JAVA_VERSION = 17Note: Because H2 is an in-memory database, database records clear on every application restart or redeploy on Render.
